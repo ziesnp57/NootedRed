@@ -56,13 +56,17 @@ void DYLDPatches::wrapCsValidatePage(vnode *vp, memory_object_t pager, memory_ob
         patch.apply(const_cast<void *>(data), PAGE_SIZE);
         return;
     }
-
-	if (getKernelVersion() >= KernelVersion::Sonoma) {
+	if (getKernelVersion() >= KernelVersion::Sequoia) {
+		const DYLDPatch patchOpenGL = {kSequoiaAddrLibGetBaseArrayModeReturnOriginal, kSequoiaAddrLibGetBaseArrayModeReturnPatched, "Sequoia OPENGL changed"};
+		patchOpenGL.apply(const_cast<void *>(data), PAGE_SIZE);
+	} else if (getKernelVersion() == KernelVersion::Sonoma) {
 		const DYLDPatch patchOpenGL = {kSonomaAddrLibGetBaseArrayModeReturnOriginal, kSonomaAddrLibGetBaseArrayModeReturnPatched, "Sonoma OPENGL changed"};
 		patchOpenGL.apply(const_cast<void *>(data), PAGE_SIZE);
 	} else if (getKernelVersion() == KernelVersion::Ventura) {
 		const DYLDPatch patchOpenGL = {kVenturaAddrLibGetBaseArrayModeReturnOriginal, kVenturaAddrLibGetBaseArrayModeReturnPatched, "Ventura OPENGL changed"};
 		patchOpenGL.apply(const_cast<void *>(data), PAGE_SIZE);
+//		const DYLDPatch patch2OpenGL = {kVentura2AddrLibGetBaseArrayModeReturnOriginal, kVentura2AddrLibGetBaseArrayModeReturnPatched, "Ventura OPENGL changed"};
+//		patch2OpenGL.apply(const_cast<void *>(data), PAGE_SIZE);
 	} else if (getKernelVersion() == KernelVersion::Monterey) {
 		const DYLDPatch patchOpenGL = {kMontereyAddrLibGetBaseArrayModeReturnOriginal, kMontereyAddrLibGetBaseArrayModeReturnPatched, "Monterey OPENGL changed"};
 		patchOpenGL.apply(const_cast<void *>(data), PAGE_SIZE);
@@ -74,10 +78,6 @@ void DYLDPatches::wrapCsValidatePage(vnode *vp, memory_object_t pager, memory_ob
 		patchOpenGL.apply(const_cast<void *>(data), PAGE_SIZE);
 	} else {
 		// 未知版本
-		return;
-	}
-
-	if (!checkKernelArgument("-ChefKissInternal")) {
 		return;
 	}
 
@@ -94,10 +94,15 @@ void DYLDPatches::wrapCsValidatePage(vnode *vp, memory_object_t pager, memory_ob
         {kHEVCEncBoardIdOriginal, kHEVCEncBoardIdPatched, "iMacPro1,1 spoof (AppleGVAHEVCEncoder)"},
     };
     DYLDPatch::applyAll(patches, const_cast<void *>(data), PAGE_SIZE);
+
+	if (!checkKernelArgument("-ChefKissInternal")) {
+		return;
+	}
+
 	if (getKernelVersion() >= KernelVersion::Sonoma) {
         const DYLDPatch patches[] = {
-			{kVAAcceleratorInfoIdentifyVenturaOriginal, kVAAcceleratorInfoIdentifyVenturaOriginalMask,
-				kVAAcceleratorInfoIdentifyVenturaPatched, kVAAcceleratorInfoIdentifyVenturaPatchedMask,
+			{kVAAcceleratorInfoIdentifySonomaOriginal, kVAAcceleratorInfoIdentifySonomaOriginalMask,
+				kVAAcceleratorInfoIdentifySonomaPatched, kVAAcceleratorInfoIdentifySonomaPatchedMask,
 				"VAAcceleratorInfo::identify"},
             {kVAFactoryCreateGraphicsEngineSonomaOriginal,
                 kVAFactoryCreateGraphicsEngineSonomaOriginalMask,

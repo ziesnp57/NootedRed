@@ -4,6 +4,7 @@
 #include "NRed.hpp"
 #include "DYLDPatches.hpp"
 #include "AppleGFXHDA.hpp"
+#include "Firmware.hpp"
 #include "HWLibs.hpp"
 #include "Model.hpp"
 #include "PatcherPlus.hpp"
@@ -12,7 +13,6 @@
 #include "X6000FB.hpp"
 #include <Headers/kern_api.hpp>
 #include <Headers/kern_devinfo.hpp>
-#include <IOKit/IOCatalogue.h>
 
 static const char *pathAGDP = "/System/Library/Extensions/AppleGraphicsControl.kext/Contents/PlugIns/"
                               "AppleGraphicsDevicePolicy.kext/Contents/MacOS/AppleGraphicsDevicePolicy";
@@ -29,22 +29,22 @@ static KernelPatcher::KextInfo kextMCCSControl {"com.apple.driver.AppleMCCSContr
 NRed *NRed::callback = nullptr;
 
 static X6000FB x6000fb;
-static X5000HWLibs hwlibs;
-static X5000 x5000;
-static X6000 x6000;
-static DYLDPatches dyldpatches;
 static AppleGFXHDA agfxhda;
+static X5000HWLibs hwlibs;
+static X6000 x6000;
+static X5000 x5000;
+static DYLDPatches dyldpatches;
 
 void NRed::init() {
-    SYSLOG("NRed", "Copyright 2022-2024 ChefKiss Inc. If you've paid for this, you've been scammed.");
+    SYSLOG("NRed", "Copyright 2022-2024 ChefKiss. If you've paid for this, you've been scammed.");
     callback = this;
 
     lilu.onKextLoadForce(&kextAGDP);
     lilu.onKextLoadForce(&kextBacklight);
     lilu.onKextLoadForce(&kextMCCSControl);
-    agfxhda.init();
     dyldpatches.init();
     x6000fb.init();
+    agfxhda.init();
     hwlibs.init();
     x6000.init();
     x5000.init();
@@ -138,44 +138,110 @@ void NRed::processPatcher(KernelPatcher &patcher) {
         SYSLOG("NRed", "Failed to create DeviceInfo");
     }
 
-    KernelPatcher::RouteRequest request {"__ZN15OSMetaClassBase12safeMetaCastEPKS_PK11OSMetaClass", wrapSafeMetaCast,
-        this->orgSafeMetaCast};
-    PANIC_COND(!patcher.routeMultipleLong(KernelPatcher::KernelID, &request, 1), "nred",
-        "Failed to route kernel symbols");
+    KernelPatcher::RouteRequest requests[] = {
+        {"__ZN15OSMetaClassBase12safeMetaCastEPKS_PK11OSMetaClass", wrapSafeMetaCast, this->orgSafeMetaCast},
+        {"__ZN11IOCatalogue10addDriversEP7OSArrayb", wrapAddDrivers, this->orgAddDrivers},
+    };
+    PANIC_COND(!patcher.routeMultipleLong(KernelPatcher::KernelID, requests), "NRed", "Failed to route kernel symbols");
 
     dyldpatches.processPatcher(patcher);
 
     x6000fb.registerDispMaxBrightnessNotif();
+}
 
-    if ((lilu.getRunMode() & LiluAPI::RunningInstallerRecovery) || checkKernelArgument("-CKFBOnly")) { return; }
+static const char *getDriverXMLForBundle(const char *bundleIdentifier, size_t *len) {
+    const auto identifierLen = strlen(bundleIdentifier);
+    const auto totalLen = identifierLen + 5;
+    auto *filename = new char[totalLen];
+    memcpy(filename, bundleIdentifier, identifierLen);
+    strlcat(filename, ".xml", totalLen);
 
-    const auto &driversXML = getFWByName("Drivers.xml");
-    auto *dataNull = new char[driversXML.length + 1];
+    const auto &driversXML = getFWByName(filename);
+    delete[] filename;
+
+    *len = driversXML.length + 1;
+    auto *dataNull = new char[*len];
     memcpy(dataNull, driversXML.data, driversXML.length);
     dataNull[driversXML.length] = 0;
-    OSString *errStr = nullptr;
-    auto *dataUnserialized = OSUnserializeXML(dataNull, driversXML.length + 1, &errStr);
-    delete[] dataNull;
-    PANIC_COND(!dataUnserialized, "NRed", "Failed to unserialize Drivers.xml: %s",
-        errStr ? errStr->getCStringNoCopy() : "Unspecified");
-    auto *drivers = OSDynamicCast(OSArray, dataUnserialized);
-    PANIC_COND(!drivers, "NRed", "Failed to cast Drivers.xml data");
-    PANIC_COND(!gIOCatalogue->addDrivers(drivers), "NRed", "Failed to add drivers");
-    OSSafeReleaseNULL(dataUnserialized);
+
+    return dataNull;
+}
+
+static const char *DriverBundleIdentifiers[] = {
+    "com.apple.kext.AMDRadeonX6000",
+    "com.apple.kext.AMDRadeonX5000",
+    "com.apple.kext.AMDRadeonX5000HWServices",
+    "com.apple.driver.AppleGFXHDA",
+};
+
+bool NRed::wrapAddDrivers(void *that, OSArray *array, bool doNubMatching) {
+    bool matches[arrsize(DriverBundleIdentifiers)];
+    bzero(matches, sizeof(matches));
+
+    auto *iterator = OSCollectionIterator::withCollection(array);
+    OSObject *object;
+    while ((object = iterator->getNextObject())) {
+        auto *dict = OSDynamicCast(OSDictionary, object);
+        if (dict == nullptr) {
+            DBGLOG("NRed", "Warning: element in addDrivers is not a dictionary.");
+            continue;
+        }
+        auto *bundleIdentifier = OSDynamicCast(OSString, dict->getObject("CFBundleIdentifier"));
+        if (bundleIdentifier == nullptr) {
+            DBGLOG("NRed", "Warning: element in addDrivers has no bundle identifier.");
+            continue;
+        }
+        for (size_t i = 0; i < arrsize(DriverBundleIdentifiers); i += 1) {
+            if (matches[i]) { continue; }
+
+            auto *matchingIdentifier = DriverBundleIdentifiers[i];
+            if (strcmp(bundleIdentifier->getCStringNoCopy(), matchingIdentifier) == 0) {
+                DBGLOG("NRed", "Matched %s.", matchingIdentifier);
+                matches[i] = true;
+            }
+        }
+    }
+    OSSafeReleaseNULL(iterator);
+
+    auto res = FunctionCast(wrapAddDrivers, callback->orgAddDrivers)(that, array, doNubMatching);
+    for (size_t i = 0; i < arrsize(DriverBundleIdentifiers); i += 1) {
+        if (!matches[i]) { continue; }
+        auto *identifier = DriverBundleIdentifiers[i];
+        DBGLOG("NRed", "Injecting personalities for %s.", identifier);
+        size_t len;
+        auto *driverXML = getDriverXMLForBundle(identifier, &len);
+
+        OSString *errStr = nullptr;
+        auto *dataUnserialized = OSUnserializeXML(driverXML, len, &errStr);
+        delete[] driverXML;
+
+        PANIC_COND(dataUnserialized == nullptr, "NRed", "Failed to unserialize driver XML for %s: %s", identifier,
+            errStr ? errStr->getCStringNoCopy() : "(nil)");
+
+        auto *drivers = OSDynamicCast(OSArray, dataUnserialized);
+        PANIC_COND(drivers == nullptr, "NRed", "Failed to cast %s driver data", identifier);
+        if (!FunctionCast(wrapAddDrivers, callback->orgAddDrivers)(that, drivers, doNubMatching)) {
+            SYSLOG("NRed", "Error: Failed to inject personalities for %s.", identifier);
+        }
+        dataUnserialized->release();
+    }
+    return res;
 }
 
 OSMetaClassBase *NRed::wrapSafeMetaCast(const OSMetaClassBase *anObject, const OSMetaClass *toMeta) {
     auto ret = FunctionCast(wrapSafeMetaCast, callback->orgSafeMetaCast)(anObject, toMeta);
-    if (UNLIKELY(!ret)) {
-        for (const auto &ent : callback->metaClassMap) {
-            if (LIKELY(ent[0] == toMeta)) {
-                return FunctionCast(wrapSafeMetaCast, callback->orgSafeMetaCast)(anObject, ent[1]);
-            } else if (UNLIKELY(ent[1] == toMeta)) {
-                return FunctionCast(wrapSafeMetaCast, callback->orgSafeMetaCast)(anObject, ent[0]);
-            }
+
+    if (LIKELY(ret)) { return ret; }
+
+    for (const auto &ent : callback->metaClassMap) {
+        if (UNLIKELY(ent[0] == toMeta)) {
+            return FunctionCast(wrapSafeMetaCast, callback->orgSafeMetaCast)(anObject, ent[1]);
+        } else if (UNLIKELY(ent[1] == toMeta)) {
+            return FunctionCast(wrapSafeMetaCast, callback->orgSafeMetaCast)(anObject, ent[0]);
         }
     }
-    return ret;
+
+    return nullptr;
 }
 
 void NRed::setRMMIOIfNecessary() {

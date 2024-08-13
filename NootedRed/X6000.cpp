@@ -50,6 +50,7 @@ bool X6000::processKext(KernelPatcher &patcher, size_t id, mach_vm_address_t sli
         };
         PANIC_COND(!RouteRequestPlus::routeAll(patcher, id, requests, slide, size), "X6000", "Failed to route symbols");
 
+
         if (NRed::callback->chipType < ChipType::Renoir) {
             RouteRequestPlus request = {"__ZN30AMDRadeonX6000_AMDGFX10Display23initDCNRegistersOffsetsEv",
                 wrapInitDCNRegistersOffsets, this->orgInitDCNRegistersOffsets};

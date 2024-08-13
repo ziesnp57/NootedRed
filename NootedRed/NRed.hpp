@@ -4,7 +4,6 @@
 #pragma once
 #include "AMDCommon.hpp"
 #include "ATOMBIOS.hpp"
-#include "Firmware.hpp"
 #include <Headers/kern_patcher.hpp>
 #include <IOKit/acpi/IOACPIPlatformExpert.h>
 #include <IOKit/graphics/IOFramebuffer.h>
@@ -59,16 +58,16 @@ static bool checkAtomBios(const UInt8 *bios, size_t size) {
 }
 
 class NRed {
-    friend class AppleGFXHDA;
     friend class DYLDPatches;
     friend class X6000FB;
+    friend class AppleGFXHDA;
     friend class X5000HWLibs;
     friend class X6000;
     friend class X5000;
 
-    public:
     static NRed *callback;
 
+    public:
     void init();
     void processPatcher(KernelPatcher &patcher);
     void setRMMIOIfNecessary();
@@ -217,11 +216,13 @@ class NRed {
     UInt16 revision {0};
     UInt32 pciRevision {0};
     IOPCIDevice *iGPU {nullptr};
+    mach_vm_address_t orgAddDrivers {0};
     OSMetaClass *metaClassMap[5][2] = {{nullptr}};
     mach_vm_address_t orgSafeMetaCast {0};
     bool enableBacklight {false};
     mach_vm_address_t orgApplePanelSetDisplay {0};
 
+    static bool wrapAddDrivers(void *that, OSArray *array, bool doNubMatching);
     static OSMetaClassBase *wrapSafeMetaCast(const OSMetaClassBase *anObject, const OSMetaClass *toMeta);
     static size_t wrapFunctionReturnZero();
     static bool wrapApplePanelSetDisplay(IOService *that, IODisplay *display);
