@@ -107,7 +107,9 @@ void NRed::processPatcher(KernelPatcher &patcher) {
         this->iGPU->setProperty("ATY,FamilyName", const_cast<char *>("Radeon"), 7);
         this->iGPU->setProperty("ATY,DeviceName", const_cast<char *>(model) + 11, modelLen - 11);    //! Vega ...
         this->iGPU->setProperty("AAPL,slot-name", const_cast<char *>("built-in"), 9);
-
+        this->iGPU->enablePCIPowerManagement(kPCIPMCSPowerStateD0);
+        this->iGPU->setMemoryEnable(true);
+        this->iGPU->setBusMasterEnable(true);
         char name[128] = {0};
         for (size_t i = 0, ii = 0; i < devInfo->videoExternal.size(); i++) {
             auto *device = OSDynamicCast(IOPCIDevice, devInfo->videoExternal[i].video);
