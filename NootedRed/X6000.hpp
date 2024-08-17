@@ -2,8 +2,8 @@
 // See LICENSE for details.
 
 #pragma once
-#include "AMDCommon.hpp"
 #include <Headers/kern_patcher.hpp>
+using t_GenericConstructor = void (*)(void *that);
 
 class X6000 {
     friend class X5000;
@@ -17,6 +17,7 @@ class X6000 {
     private:
     mach_vm_address_t orgAllocateAMDHWDisplay {0};
     mach_vm_address_t orgInitDCNRegistersOffsets {0};
+    // Revert VCN begin
     t_GenericConstructor orgVCN2EngineConstructor {nullptr};
     mach_vm_address_t orgNewVideoContext {0};
     mach_vm_address_t orgCreateSMLInterface {0};
@@ -28,7 +29,6 @@ class X6000 {
     mach_vm_address_t orgFillUBMSurface {0};
     mach_vm_address_t orgConfigureDisplay {0};
     mach_vm_address_t orgGetDisplayInfo {0};
-    // Revert VCN begin
     mach_vm_address_t orgAccelSharedUCStart {0};
     mach_vm_address_t orgAccelSharedUCStop {0};
     // Revert VCN end
@@ -38,7 +38,7 @@ class X6000 {
     // Revert VCN begin
     static bool wrapAccelSharedUCStartX6000(void *that, void *provider);
     static bool wrapAccelSharedUCStopX6000(void *that, void *provider);
-    static UInt64 wrapAccelSharedSurfaceCopy(void *that, void *param1, UInt64 param2, void *param3);
+    //static UInt64 wrapAccelSharedSurfaceCopy(void *that, void *param1, UInt64 param2, void *param3);
     // Revert VCN end
 };
 

@@ -27,10 +27,14 @@ bool X6000::processKext(KernelPatcher &patcher, size_t id, mach_vm_address_t sli
              *orgAllocateScanoutFB = nullptr;
 
         SolveRequestPlus solveRequests[] = {
+			// Revert VCN begin
             {"__ZN30AMDRadeonX6000_AMDVCN2HWEngineC1Ev", this->orgVCN2EngineConstructor},
+			// Revert VCN end
             {"__ZN31AMDRadeonX6000_AMDGFX10Hardware20allocateAMDHWDisplayEv", this->orgAllocateAMDHWDisplay},
+			// Revert VCN begin
             {"__ZN42AMDRadeonX6000_AMDGFX10GraphicsAccelerator15newVideoContextEv", this->orgNewVideoContext},
             {"__ZN31AMDRadeonX6000_IAMDSMLInterface18createSMLInterfaceEj", this->orgCreateSMLInterface},
+			// Revert VCN end
             {"__ZN35AMDRadeonX6000_AMDAccelVideoContext10gMetaClassE", NRed::callback->metaClassMap[0][1]},
             {"__ZN37AMDRadeonX6000_AMDAccelDisplayMachine10gMetaClassE", NRed::callback->metaClassMap[1][1]},
             {"__ZN34AMDRadeonX6000_AMDAccelDisplayPipe10gMetaClassE", NRed::callback->metaClassMap[2][1]},
@@ -82,7 +86,7 @@ bool X6000::processKext(KernelPatcher &patcher, size_t id, mach_vm_address_t sli
             RouteRequestPlus requests[] = {
                 {"__ZN39AMDRadeonX6000_AMDAccelSharedUserClient5startEP9IOService", wrapAccelSharedUCStartX6000},
                 {"__ZN39AMDRadeonX6000_AMDAccelSharedUserClient4stopEP9IOService", wrapAccelSharedUCStopX6000},
-                {"__ZN29AMDRadeonX6000_AMDAccelShared11SurfaceCopyEPjyP12IOAccelEvent", wrapAccelSharedSurfaceCopy, this->orgAccelSharedSurfaceCopy},
+                //{"__ZN29AMDRadeonX6000_AMDAccelShared11SurfaceCopyEPjyP12IOAccelEvent", wrapAccelSharedSurfaceCopy, this->orgAccelSharedSurfaceCopy},
             };
             PANIC_COND(!RouteRequestPlus::routeAll(patcher, id, requests, slide, size), "X6000", "Failed to route AccelShared symbols");
             // Revert VCN end
@@ -269,8 +273,8 @@ void X6000::wrapInitDCNRegistersOffsets(void *that) {
     getMember<UInt32>(that, fieldBase + 0xEC) = base + mmHUBPREQ3_DCSURF_SURFACE_EARLIEST_INUSE_HIGH;
 }
 // Revert VCN begin
-#define HWALIGNMGR_ADJUST getMember<void *>(X5000::callback->hwAlignMgr, 0) = X5000::callback->hwAlignMgrVtX6000;
-#define HWALIGNMGR_REVERT getMember<void *>(X5000::callback->hwAlignMgr, 0) = X5000::callback->hwAlignMgrVtX5000;
+//#define HWALIGNMGR_ADJUST getMember<void *>(X5000::callback->hwAlignMgr, 0) = X5000::callback->hwAlignMgrVtX6000;
+//#define HWALIGNMGR_REVERT getMember<void *>(X5000::callback->hwAlignMgr, 0) = X5000::callback->hwAlignMgrVtX5000;
 
 bool X6000::wrapAccelSharedUCStartX6000(void *that, void *provider) {
     return FunctionCast(wrapAccelSharedUCStartX6000, X5000::callback->orgAccelSharedUCStart)(that, provider);
@@ -280,11 +284,11 @@ bool X6000::wrapAccelSharedUCStopX6000(void *that, void *provider) {
     return FunctionCast(wrapAccelSharedUCStopX6000, X5000::callback->orgAccelSharedUCStop)(that, provider);
 }
 
-UInt64 X6000::wrapAccelSharedSurfaceCopy(void *that, void *param1, UInt64 param2, void *param3) {
-    HWALIGNMGR_ADJUST
-    auto ret =
-        FunctionCast(wrapAccelSharedSurfaceCopy, callback->orgAccelSharedSurfaceCopy)(that, param1, param2, param3);
-    HWALIGNMGR_REVERT
-    return ret;
-}
+//UInt64 X6000::wrapAccelSharedSurfaceCopy(void *that, void *param1, UInt64 param2, void *param3) {
+//    HWALIGNMGR_ADJUST
+//    auto ret =
+//        FunctionCast(wrapAccelSharedSurfaceCopy, callback->orgAccelSharedSurfaceCopy)(that, param1, param2, param3);
+//    HWALIGNMGR_REVERT
+//    return ret;
+//}
 // Revert VCN end

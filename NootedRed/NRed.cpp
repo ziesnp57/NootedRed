@@ -107,9 +107,11 @@ void NRed::processPatcher(KernelPatcher &patcher) {
         this->iGPU->setProperty("ATY,FamilyName", const_cast<char *>("Radeon"), 7);
         this->iGPU->setProperty("ATY,DeviceName", const_cast<char *>(model) + 11, modelLen - 11);    // Vega ...
         this->iGPU->setProperty("AAPL,slot-name", const_cast<char *>("built-in"), 9);
+		// 来自 jalavoui 针对 commitid #ebfcc39 `Put the FB back to the Info.plist, fix order of X6000`的评论，用于修复某种睡眠Bug
         this->iGPU->enablePCIPowerManagement(kPCIPMCSPowerStateD0);
         this->iGPU->setMemoryEnable(true);
         this->iGPU->setBusMasterEnable(true);
+		// end
         char name[128] = {0};
         for (size_t i = 0, ii = 0; i < devInfo->videoExternal.size(); i++) {
             auto *device = OSDynamicCast(IOPCIDevice, devInfo->videoExternal[i].video);
