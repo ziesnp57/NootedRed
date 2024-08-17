@@ -1,5 +1,5 @@
-//! Copyright © 2022-2024 ChefKiss Inc. Licensed under the Thou Shalt Not Profit License version 1.5.
-//! See LICENSE for details.
+// Copyright © 2022-2024 ChefKiss. Licensed under the Thou Shalt Not Profit License version 1.5.
+// See LICENSE for details.
 
 #include "X6000.hpp"
 #include "NRed.hpp"
@@ -23,6 +23,9 @@ bool X6000::processKext(KernelPatcher &patcher, size_t id, mach_vm_address_t sli
     if (kextRadeonX6000.loadIndex == id) {
         NRed::callback->setRMMIOIfNecessary();
 
+        void *orgFillUBMSurface = nullptr, *orgConfigureDisplay = nullptr, *orgGetDisplayInfo = nullptr,
+             *orgAllocateScanoutFB = nullptr;
+
         SolveRequestPlus solveRequests[] = {
             {"__ZN30AMDRadeonX6000_AMDVCN2HWEngineC1Ev", this->orgVCN2EngineConstructor},
             {"__ZN31AMDRadeonX6000_AMDGFX10Hardware20allocateAMDHWDisplayEv", this->orgAllocateAMDHWDisplay},
@@ -33,35 +36,30 @@ bool X6000::processKext(KernelPatcher &patcher, size_t id, mach_vm_address_t sli
             {"__ZN34AMDRadeonX6000_AMDAccelDisplayPipe10gMetaClassE", NRed::callback->metaClassMap[2][1]},
             {"__ZN30AMDRadeonX6000_AMDAccelChannel10gMetaClassE", NRed::callback->metaClassMap[3][0]},
             {"__ZN28AMDRadeonX6000_IAMDHWChannel10gMetaClassE", NRed::callback->metaClassMap[4][1]},
-            {"__ZN33AMDRadeonX6000_AMDHWAlignManager224getPreferredSwizzleMode2EP33_ADDR2_COMPUTE_SURFACE_INFO_INPUT",
-                this->orgGetPreferredSwizzleMode2},
+            {"__ZN27AMDRadeonX6000_AMDHWDisplay14fillUBMSurfaceEjP17_FRAMEBUFFER_INFOP13_UBM_SURFINFO",
+                orgFillUBMSurface},
+            {"__ZN27AMDRadeonX6000_AMDHWDisplay16configureDisplayEjjP17_FRAMEBUFFER_INFOP16IOAccelResource2",
+                orgConfigureDisplay},
+            {"__ZN27AMDRadeonX6000_AMDHWDisplay14getDisplayInfoEjbbPvP17_FRAMEBUFFER_INFO", orgGetDisplayInfo},
         };
         PANIC_COND(!SolveRequestPlus::solveAll(patcher, id, solveRequests, slide, size), "X6000",
             "Failed to resolve symbols");
 
-        RouteRequestPlus requests[] = {
-            {"__ZN37AMDRadeonX6000_AMDGraphicsAccelerator5startEP9IOService", wrapAccelStartX6000},
-            {"__ZN27AMDRadeonX6000_AMDHWDisplay14fillUBMSurfaceEjP17_FRAMEBUFFER_INFOP13_UBM_SURFINFO",
-                wrapFillUBMSurface, this->orgFillUBMSurface},
-            {"__ZN27AMDRadeonX6000_AMDHWDisplay16configureDisplayEjjP17_FRAMEBUFFER_INFOP16IOAccelResource2",
-                wrapConfigureDisplay, this->orgConfigureDisplay},
-            {"__ZN27AMDRadeonX6000_AMDHWDisplay14getDisplayInfoEjbbPvP17_FRAMEBUFFER_INFO", wrapGetDisplayInfo,
-                this->orgGetDisplayInfo},
-        };
-        PANIC_COND(!RouteRequestPlus::routeAll(patcher, id, requests, slide, size), "X6000", "Failed to route symbols");
+        bool ventura = getKernelVersion() >= KernelVersion::Ventura;
+        if (!ventura) {
+            SolveRequestPlus request {"__ZN27AMDRadeonX6000_AMDHWDisplay17allocateScanoutFBEjP16IOAccelResource2S1_Py",
+                orgAllocateScanoutFB};
+            PANIC_COND(!request.solve(patcher, id, slide, size), "X6000", "Failed to resolve allocateScanout");
+        }
 
+        RouteRequestPlus request = {"__ZN37AMDRadeonX6000_AMDGraphicsAccelerator5startEP9IOService",
+            wrapAccelStartX6000};
+        PANIC_COND(!request.route(patcher, id, slide, size), "X6000", "Failed to route AMDGraphicsAccelerator::start");
 
         if (NRed::callback->chipType < ChipType::Renoir) {
             RouteRequestPlus request = {"__ZN30AMDRadeonX6000_AMDGFX10Display23initDCNRegistersOffsetsEv",
                 wrapInitDCNRegistersOffsets, this->orgInitDCNRegistersOffsets};
             PANIC_COND(!request.route(patcher, id, slide, size), "X6000", "Failed to route initDCNRegistersOffsets");
-        }
-
-        auto ventura = getKernelVersion() >= KernelVersion::Ventura;
-        if (!ventura) {
-            RouteRequestPlus request {"__ZN27AMDRadeonX6000_AMDHWDisplay17allocateScanoutFBEjP16IOAccelResource2S1_Py",
-                wrapAllocateScanoutFB, this->orgAllocateScanoutFB};
-            PANIC_COND(!request.route(patcher, id, slide, size), "X6000", "Failed to route allocateScanout");
         }
 
         bool catalina = getKernelVersion() == KernelVersion::Catalina;
@@ -74,6 +72,7 @@ bool X6000::processKext(KernelPatcher &patcher, size_t id, mach_vm_address_t sli
             SYSLOG_COND(!LookupPatchPlus::applyAll(patcher, patches, slide, size), "X6000", "Failed to apply patches");
             patcher.clearError();
         } else {
+            // Revert VCN begin
             SolveRequestPlus solveRequests[] = {
                 {"__ZN37AMDRadeonX6000_AMDGraphicsAccelerator9newSharedEv", this->orgNewShared},
                 {"__ZN37AMDRadeonX6000_AMDGraphicsAccelerator19newSharedUserClientEv", this->orgNewSharedUserClient},
@@ -86,6 +85,7 @@ bool X6000::processKext(KernelPatcher &patcher, size_t id, mach_vm_address_t sli
                 {"__ZN29AMDRadeonX6000_AMDAccelShared11SurfaceCopyEPjyP12IOAccelEvent", wrapAccelSharedSurfaceCopy, this->orgAccelSharedSurfaceCopy},
             };
             PANIC_COND(!RouteRequestPlus::routeAll(patcher, id, requests, slide, size), "X6000", "Failed to route AccelShared symbols");
+            // Revert VCN end
             const LookupPatchPlus patch {&kextRadeonX6000, kHWChannelSubmitCommandBufferOriginal,
                 kHWChannelSubmitCommandBufferPatched, 1};
             SYSLOG_COND(!patch.apply(patcher, slide, size), "X6000", "Failed to apply submitCommandBuffer patch");
@@ -183,6 +183,12 @@ bool X6000::processKext(KernelPatcher &patcher, size_t id, mach_vm_address_t sli
             patcher.clearError();
         }
 
+        // Now, for AMDHWDisplay, fix the VTable offsets to calls in HWAlignManager2.
+        FillUBMSurfaceVTFix.apply(orgFillUBMSurface);
+        ConfigureDisplayVTFix.apply(orgConfigureDisplay);
+        GetDisplayInfoVTFix.apply(orgGetDisplayInfo);
+        if (orgAllocateScanoutFB != nullptr) { AllocateScanoutFBVTFix.apply(orgAllocateScanoutFB); }
+
         return true;
     }
 
@@ -262,39 +268,9 @@ void X6000::wrapInitDCNRegistersOffsets(void *that) {
     getMember<UInt32>(that, fieldBase + 0xB4) = base + mmHUBPREQ2_DCSURF_SURFACE_EARLIEST_INUSE_HIGH;
     getMember<UInt32>(that, fieldBase + 0xEC) = base + mmHUBPREQ3_DCSURF_SURFACE_EARLIEST_INUSE_HIGH;
 }
-
+// Revert VCN begin
 #define HWALIGNMGR_ADJUST getMember<void *>(X5000::callback->hwAlignMgr, 0) = X5000::callback->hwAlignMgrVtX6000;
 #define HWALIGNMGR_REVERT getMember<void *>(X5000::callback->hwAlignMgr, 0) = X5000::callback->hwAlignMgrVtX5000;
-
-UInt64 X6000::wrapAllocateScanoutFB(void *that, UInt32 param1, void *param2, void *param3, void *param4) {
-    HWALIGNMGR_ADJUST
-    auto ret =
-        FunctionCast(wrapAllocateScanoutFB, callback->orgAllocateScanoutFB)(that, param1, param2, param3, param4);
-    HWALIGNMGR_REVERT
-    return ret;
-}
-
-UInt64 X6000::wrapFillUBMSurface(void *that, UInt32 param1, void *param2, void *param3) {
-    HWALIGNMGR_ADJUST
-    auto ret = FunctionCast(wrapFillUBMSurface, callback->orgFillUBMSurface)(that, param1, param2, param3);
-    HWALIGNMGR_REVERT
-    return ret;
-}
-
-bool X6000::wrapConfigureDisplay(void *that, UInt32 param1, UInt32 param2, void *param3, void *param4) {
-    HWALIGNMGR_ADJUST
-    auto ret = FunctionCast(wrapConfigureDisplay, callback->orgConfigureDisplay)(that, param1, param2, param3, param4);
-    HWALIGNMGR_REVERT
-    return ret;
-}
-
-UInt64 X6000::wrapGetDisplayInfo(void *that, UInt32 param1, bool param2, bool param3, void *param4, void *param5) {
-    HWALIGNMGR_ADJUST
-    auto ret =
-        FunctionCast(wrapGetDisplayInfo, callback->orgGetDisplayInfo)(that, param1, param2, param3, param4, param5);
-    HWALIGNMGR_REVERT
-    return ret;
-}
 
 bool X6000::wrapAccelSharedUCStartX6000(void *that, void *provider) {
     return FunctionCast(wrapAccelSharedUCStartX6000, X5000::callback->orgAccelSharedUCStart)(that, provider);
@@ -311,3 +287,4 @@ UInt64 X6000::wrapAccelSharedSurfaceCopy(void *that, void *param1, UInt64 param2
     HWALIGNMGR_REVERT
     return ret;
 }
+// Revert VCN end

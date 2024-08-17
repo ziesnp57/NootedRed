@@ -1,5 +1,5 @@
-//! Copyright © 2022-2024 ChefKiss Inc. Licensed under the Thou Shalt Not Profit License version 1.5.
-//! See LICENSE for details.
+// Copyright © 2022-2024 ChefKiss. Licensed under the Thou Shalt Not Profit License version 1.5.
+// See LICENSE for details.
 
 #include "X5000.hpp"
 #include "Firmware.hpp"
@@ -35,8 +35,10 @@ bool X5000::processKext(KernelPatcher &patcher, size_t id, mach_vm_address_t sli
                 orgChannelTypes, kChannelTypesPattern},
             {"__ZN31AMDRadeonX5000_AMDGFX9PM4EngineC1Ev", this->orgGFX9PM4EngineConstructor},
             {"__ZN32AMDRadeonX5000_AMDGFX9SDMAEngineC1Ev", this->orgGFX9SDMAEngineConstructor},
+            // revert VCN begin
             {"__ZN39AMDRadeonX5000_AMDAccelSharedUserClient5startEP9IOService", this->orgAccelSharedUCStart},
             {"__ZN39AMDRadeonX5000_AMDAccelSharedUserClient4stopEP9IOService", this->orgAccelSharedUCStop},
+            // revert VCN end
             {"__ZN35AMDRadeonX5000_AMDAccelVideoContext10gMetaClassE", NRed::callback->metaClassMap[0][0]},
             {"__ZN37AMDRadeonX5000_AMDAccelDisplayMachine10gMetaClassE", NRed::callback->metaClassMap[1][0]},
             {"__ZN34AMDRadeonX5000_AMDAccelDisplayPipe10gMetaClassE", NRed::callback->metaClassMap[2][0]},
@@ -57,8 +59,10 @@ bool X5000::processKext(KernelPatcher &patcher, size_t id, mach_vm_address_t sli
                 wrapGetHWChannel, this->orgGetHWChannel},
             {"__ZN30AMDRadeonX5000_AMDGFX9Hardware20initializeFamilyTypeEv", wrapInitializeFamilyType},
             {"__ZN30AMDRadeonX5000_AMDGFX9Hardware20allocateAMDHWDisplayEv", wrapAllocateAMDHWDisplay},
+            // revert VCN begin
             {"__ZN41AMDRadeonX5000_AMDGFX9GraphicsAccelerator15newVideoContextEv", wrapNewVideoContext},
             {"__ZN31AMDRadeonX5000_IAMDSMLInterface18createSMLInterfaceEj", wrapCreateSMLInterface},
+            // revert VCN end
             {"__ZN26AMDRadeonX5000_AMDHWMemory17adjustVRAMAddressEy", wrapAdjustVRAMAddress,
                 this->orgAdjustVRAMAddress},
             {"__ZN30AMDRadeonX5000_AMDGFX9Hardware25allocateAMDHWAlignManagerEv", wrapAllocateAMDHWAlignManager,
@@ -71,6 +75,7 @@ bool X5000::processKext(KernelPatcher &patcher, size_t id, mach_vm_address_t sli
 
         bool ventura = getKernelVersion() >= KernelVersion::Ventura;
         bool ventura1304 = getKernelVersion() > KernelVersion::Ventura || (ventura && getKernelMinorVersion() >= 5);
+        // revert VCN begin
         if (!catalina) {
             RouteRequestPlus requests[] = {
                 {"__ZN37AMDRadeonX5000_AMDGraphicsAccelerator9newSharedEv", wrapNewShared},
@@ -78,6 +83,7 @@ bool X5000::processKext(KernelPatcher &patcher, size_t id, mach_vm_address_t sli
             };
             PANIC_COND(!RouteRequestPlus::routeAll(patcher, id, requests, slide, size), "X5000", "Failed to route newShared routes");
         }
+        // revert VCN end
 
         if (ventura1304) {
             RouteRequestPlus request {"__ZN37AMDRadeonX5000_AMDGraphicsAccelerator23obtainAccelChannelGroupE11SS_"
@@ -127,7 +133,7 @@ bool X5000::processKext(KernelPatcher &patcher, size_t id, mach_vm_address_t sli
 
             PANIC_COND(MachInfo::setKernelWriting(true, KernelPatcher::kernelWriteLock) != KERN_SUCCESS, "X5000",
                 "Failed to enable kernel writing");
-            *orgChannelTypes = 1;    //! Make VMPT use SDMA0 instead of SDMA1
+            *orgChannelTypes = 1;    // Make VMPT use SDMA0 instead of SDMA1
             MachInfo::setKernelWriting(false, KernelPatcher::kernelWriteLock);
             DBGLOG("X5000", "Applied SDMA1 patches");
         } else {
@@ -150,9 +156,9 @@ bool X5000::processKext(KernelPatcher &patcher, size_t id, mach_vm_address_t sli
 
             PANIC_COND(MachInfo::setKernelWriting(true, KernelPatcher::kernelWriteLock) != KERN_SUCCESS, "X5000",
                 "Failed to enable kernel writing");
-            //! createAccelChannels: stop at SDMA0
+            // createAccelChannels: stop at SDMA0
             orgChannelTypes[5] = 1;
-            //! getPagingChannel: get only SDMA0
+            // getPagingChannel: get only SDMA0
             orgChannelTypes[(getKernelVersion() >= KernelVersion::Monterey) ? 12 : 11] = 0;
             MachInfo::setKernelWriting(false, KernelPatcher::kernelWriteLock);
             DBGLOG("X5000", "Applied SDMA1 patches");
@@ -175,10 +181,11 @@ bool X5000::wrapAllocateHWEngines(void *that) {
     auto *sdma0 = OSObject::operator new(0x250);
     callback->orgGFX9SDMAEngineConstructor(sdma0);
     getMember<void *>(that, fieldBase + 0x8) = sdma0;
-
+    // revert VCN begin
     auto *vcn0 = OSObject::operator new(0x2D8);
     X6000::callback->orgVCN2EngineConstructor(vcn0);
     getMember<void *>(that, fieldBase + (catalina ? 0x30 : 0x40)) = vcn0;
+    // revert VCN end
 
     return true;
 }
@@ -223,14 +230,14 @@ struct HWCapabilityVentura {
 };
 
 enum struct HWCapability {
-    DisplayPipeCount = 0,    //! UInt32
-    SECount,                 //! UInt32
-    SHPerSE,                 //! UInt32
-    CUPerSH,                 //! UInt32
-    HasUVD0,                 //! bool
-    HasVCE,                  //! bool
-    HasVCN0,                 //! bool
-    HasSDMAPagingQueue,      //! bool
+    DisplayPipeCount = 0,    // UInt32
+    SECount,                 // UInt32
+    SHPerSE,                 // UInt32
+    CUPerSH,                 // UInt32
+    HasUVD0,                 // bool
+    HasVCE,                  // bool
+    HasVCN0,                 // bool
+    HasSDMAPagingQueue,      // bool
 };
 
 template<typename T>
@@ -350,8 +357,8 @@ void X5000::wrapGFX9SetupAndInitializeHWCapabilities(void *that) {
     FunctionCast(wrapGFX9SetupAndInitializeHWCapabilities, callback->orgGFX9SetupAndInitializeHWCapabilities)(that);
 }
 
+// Redirect SDMA1 to SDMA0
 void *X5000::wrapGetHWChannel(void *that, UInt32 engineType, UInt32 ringId) {
-    //! Redirect SDMA1 to SDMA0
     return FunctionCast(wrapGetHWChannel, callback->orgGetHWChannel)(that, (engineType == 2) ? 1 : engineType, ringId);
 }
 
@@ -368,18 +375,17 @@ UInt64 X5000::wrapAdjustVRAMAddress(void *that, UInt64 addr) {
     return ret != addr ? (ret + NRed::callback->fbOffset) : ret;
 }
 
+static UInt32 fakeGetPreferredSwizzleMode2(void *, void *pIn) { return getMember<UInt32>(pIn, 0x10); }
+
 void *X5000::wrapAllocateAMDHWAlignManager() {
-    auto ret = FunctionCast(wrapAllocateAMDHWAlignManager, callback->orgAllocateAMDHWAlignManager)();
-    callback->hwAlignMgr = ret;
-
-    callback->hwAlignMgrVtX5000 = getMember<UInt8 *>(ret, 0);
-    callback->hwAlignMgrVtX6000 = IONewZero(UInt8, 0x238);
-
-    memcpy(callback->hwAlignMgrVtX6000, callback->hwAlignMgrVtX5000, 0x128);
-    *reinterpret_cast<mach_vm_address_t *>(callback->hwAlignMgrVtX6000 + 0x128) =
-        X6000::callback->orgGetPreferredSwizzleMode2;
-    memcpy(callback->hwAlignMgrVtX6000 + 0x130, callback->hwAlignMgrVtX5000 + 0x128, 0x230 - 0x128);
-    return ret;
+    void *hwAlignManager = FunctionCast(wrapAllocateAMDHWAlignManager, callback->orgAllocateAMDHWAlignManager)();
+    UInt8 *vtableNew = IONewZero(UInt8, 0x238);
+    UInt8 *vtableOriginal = getMember<UInt8 *>(hwAlignManager, 0);
+    getMember<UInt8 *>(hwAlignManager, 0) = vtableNew;
+    memcpy(vtableNew, vtableOriginal, 0x230);
+    *reinterpret_cast<mach_vm_address_t *>(vtableNew + 0x230) =
+        reinterpret_cast<mach_vm_address_t>(fakeGetPreferredSwizzleMode2);
+    return hwAlignManager;
 }
 
 UInt32 X5000::wrapGetDeviceType() { return NRed::callback->chipType < ChipType::Renoir ? 0 : 9; }
@@ -388,7 +394,7 @@ UInt32 X5000::wrapReturnZero() { return 0; }
 
 static void fixAccelGroup(void *that) {
     auto *&sdma1 = getMember<void *>(that, 0x18);
-    sdma1 = sdma1 ?: getMember<void *>(that, 0x10);    //! Replace field with SDMA0, as we have no SDMA1
+    sdma1 = sdma1 ?: getMember<void *>(that, 0x10);    // Replace field with SDMA0, as we have no SDMA1
 }
 
 void *X5000::wrapObtainAccelChannelGroup(void *that, UInt32 priority) {
@@ -418,7 +424,7 @@ UInt32 X5000::wrapHwlConvertChipFamily(void *that, UInt32, UInt32) {
     settings.metaBaseAlignFix = 1;
     return ADDR_CHIP_FAMILY_AI;
 }
-
+// Revert VCN begin
 void *X5000::wrapNewVideoContext(void *that) {
     return FunctionCast(wrapNewVideoContext, X6000::callback->orgNewVideoContext)(that);
 }
@@ -432,3 +438,4 @@ void *X5000::wrapNewShared() { return FunctionCast(wrapNewShared, X6000::callbac
 void *X5000::wrapNewSharedUserClient() {
     return FunctionCast(wrapNewSharedUserClient, X6000::callback->orgNewSharedUserClient)();
 }
+// revert VCN end
