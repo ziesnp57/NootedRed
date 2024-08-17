@@ -59,10 +59,9 @@ jobs:
           echo "The following functions have been implemented:" >> /tmp/xx.md
           echo "1. Restore the VCN related code which was deleted by the official. 2;" >> /tmp/xx.md
           echo "2. Add BFixup related code." >> /tmp/xx.md
-          git log -"1" --format="- %H %s" | sed '/^$/d' | sed 's/ and release//g' | sed 's/^\[[0-9]*\]. release//g' >> /tmp/xx.md
+          git log -"1" --format="- %H %s" | sed '/^$/d' | sed 's/ and release\.*//g' | sed 's/[0-9]*\.* *release\.*//g' | sed 's/ release\.*//g' >> /tmp/xx.md
 
       - name: 发布
-        # if: github.event_name == 'release'
         if: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, 'release') }}
         uses: ncipollo/release-action@v1.14.0
         with:
