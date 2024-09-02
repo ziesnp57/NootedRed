@@ -59,10 +59,10 @@ void DYLDPatches::wrapCsValidatePage(vnode *vp, memory_object_t pager, memory_ob
 	if (getKernelVersion() >= KernelVersion::Sequoia) {
 		const DYLDPatch patchOpenGL = {kSequoiaAddrLibGetBaseArrayModeReturnOriginal, kSequoiaAddrLibGetBaseArrayModeReturnPatched, "Sequoia OPENGL changed"};
 		patchOpenGL.apply(const_cast<void *>(data), PAGE_SIZE);
-	} else if (getKernelVersion() == KernelVersion::Sonoma) {
+	} else if (getKernelVersion() == KernelVersion::Ventura) {
 		const DYLDPatch patchOpenGL = {kSonomaAddrLibGetBaseArrayModeReturnOriginal, kSonomaAddrLibGetBaseArrayModeReturnPatched, "Sonoma OPENGL changed"};
 		patchOpenGL.apply(const_cast<void *>(data), PAGE_SIZE);
-	} else if (getKernelVersion() == KernelVersion::Ventura) {
+	} else if (getKernelVersion() == KernelVersion::Venturaa) {
 		const DYLDPatch patchOpenGL = {kVenturaAddrLibGetBaseArrayModeReturnOriginal, kVenturaAddrLibGetBaseArrayModeReturnPatched, "Ventura OPENGL changed"};
 		patchOpenGL.apply(const_cast<void *>(data), PAGE_SIZE);
 //		const DYLDPatch patch2OpenGL = {kVentura2AddrLibGetBaseArrayModeReturnOriginal, kVentura2AddrLibGetBaseArrayModeReturnPatched, "Ventura OPENGL changed"};
@@ -95,11 +95,7 @@ void DYLDPatches::wrapCsValidatePage(vnode *vp, memory_object_t pager, memory_ob
     };
     DYLDPatch::applyAll(patches, const_cast<void *>(data), PAGE_SIZE);
 
-	if (!checkKernelArgument("-ChefKissInternal")) {
-		return;
-	}
-
-	if (getKernelVersion() >= KernelVersion::Sonoma) {
+	if (getKernelVersion() >= KernelVersion::Ventura) {
         const DYLDPatch patches[] = {
 			{kVAAcceleratorInfoIdentifySonomaOriginal, kVAAcceleratorInfoIdentifySonomaOriginalMask,
 				kVAAcceleratorInfoIdentifySonomaPatched, kVAAcceleratorInfoIdentifySonomaPatchedMask,
@@ -115,7 +111,7 @@ void DYLDPatches::wrapCsValidatePage(vnode *vp, memory_object_t pager, memory_ob
                 kVAFactoryCreateVPSonomaPatchedMask, "VAFactory::create*VP"},
         };
         DYLDPatch::applyAll(patches, const_cast<void *>(data), PAGE_SIZE);
-    } else if (getKernelVersion() == KernelVersion::Ventura) {
+    } else if (getKernelVersion() == KernelVersion::Venturaa) {
 		const DYLDPatch patches[] = {
 			{kVAAcceleratorInfoIdentifyVenturaOriginal, kVAAcceleratorInfoIdentifyVenturaOriginalMask,
 				kVAAcceleratorInfoIdentifyVenturaPatched, kVAAcceleratorInfoIdentifyVenturaPatchedMask,
