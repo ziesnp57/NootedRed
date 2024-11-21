@@ -1,7 +1,12 @@
-//! Copyright 2022-2024 ChefKiss Inc. Licensed under the Thou Shalt Not Profit License version 1.5.
-//! See LICENSE for details.
+//
+//  DRMPatches.cpp
+//  NootedRed
+//
+//  Created by Mac on 2024/11/22.
+//  Copyright © 2024 ChefKiss. All rights reserved.
+//
 
-#include <PrivateHeaders/iVega/DRMPatches.hpp>
+#include <DRMPatches.hpp>
 #include <PrivateHeaders/NRed.hpp>
 #include <Headers/kern_api.hpp>
 #include <Headers/kern_devinfo.hpp>

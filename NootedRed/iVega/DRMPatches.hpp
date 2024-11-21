@@ -1,5 +1,10 @@
-//! Copyright 2022-2024 ChefKiss Inc. Licensed under the Thou Shalt Not Profit License version 1.5.
-//! See LICENSE for details.
+//
+//  DRMPatches.hpp
+//  NootedRed
+//
+//  Created by Mac on 2024/11/22.
+//  Copyright © 2024 ChefKiss. All rights reserved.
+//
 
 #pragma once
 #include <Headers/kern_patcher.hpp>
@@ -66,7 +71,7 @@ class DRMPatches {
     static DRMPatches *callback;    // 回调指针
     void init();                     // 初始化函数
     void processPatcher(KernelPatcher &patcher);  // 处理补丁器
-    
+
     private:
     static void apply(char *path, void *data, size_t size);  // 应用补丁
     mach_vm_address_t orgCsValidatePage {0};     // 原始页面验证函数地址
@@ -320,5 +325,6 @@ static const UInt8 kAddFormatPacketPatched[] = {0xB8, 0x00, 0x00, 0x00, 0x00, 0x
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 static const UInt8 kAddFormatPacketPatchedMask[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
 
 

@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		04783B3A2CEF93D6001D4804 /* DRMPatches.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 04783B382CEF93D6001D4804 /* DRMPatches.cpp */; };
+		04783B3B2CEF93D6001D4804 /* DRMPatches.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 04783B392CEF93D6001D4804 /* DRMPatches.hpp */; };
 		1C748C2D1C21952C0024EED2 /* Plugin.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1C748C2C1C21952C0024EED2 /* Plugin.cpp */; };
 		401075932CDA8746002D1CD7 /* Model.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 401075922CDA8742002D1CD7 /* Model.cpp */; };
 		4012096C2CE2FD96006E2812 /* DPCD.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 4012096B2CE2FD96006E2812 /* DPCD.hpp */; };
@@ -84,6 +86,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		04783B382CEF93D6001D4804 /* DRMPatches.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DRMPatches.cpp; sourceTree = "<group>"; };
+		04783B392CEF93D6001D4804 /* DRMPatches.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DRMPatches.hpp; sourceTree = "<group>"; };
 		1C748C271C21952C0024EED2 /* NootedRed.kext */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NootedRed.kext; sourceTree = BUILT_PRODUCTS_DIR; };
 		1C748C2C1C21952C0024EED2 /* Plugin.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Plugin.cpp; sourceTree = "<group>"; };
 		1C748C2E1C21952C0024EED2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -208,6 +212,8 @@
 				40FC5FD729BF995E00367F9D /* X5000.cpp */,
 				40FC5FDF29BF9E2500367F9D /* X6000.cpp */,
 				40FC5FD329BF995000367F9D /* X6000FB.cpp */,
+				04783B382CEF93D6001D4804 /* DRMPatches.cpp */,
+				04783B392CEF93D6001D4804 /* DRMPatches.hpp */,
 			);
 			path = iVega;
 			sourceTree = "<group>";
@@ -379,6 +385,7 @@
 				409127762CE2F7EA004DBDB5 /* Linux.hpp in Headers */,
 				409127722CE2F76C004DBDB5 /* Driver.hpp in Headers */,
 				40364DB629B79DFD0070A2B4 /* Model.hpp in Headers */,
+				04783B3B2CEF93D6001D4804 /* DRMPatches.hpp in Headers */,
 				4014D9722C74AA7000FDE986 /* ObjectField.hpp in Headers */,
 				4091276D2CE2F681004DBDB5 /* SignalTypes.hpp in Headers */,
 				CEA03B5F20EE825A00BA842F /* NRed.hpp in Headers */,
@@ -518,6 +525,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				04783B3A2CEF93D6001D4804 /* DRMPatches.cpp in Sources */,
 				40FC5FDD29BF996900367F9D /* HWLibs.cpp in Sources */,
 				40FC5FD529BF995000367F9D /* X6000FB.cpp in Sources */,
 				6C1B36662A407C6100B184DD /* AppleGFXHDA.cpp in Sources */,
