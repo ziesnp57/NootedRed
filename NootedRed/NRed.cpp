@@ -93,7 +93,7 @@ void NRed::init() {
     Hotfixes::AGDP::singleton().init();
     Hotfixes::X6000FB::singleton().init();
     Backlight::singleton().init();
-    iVega::DRMPatches::singleton().init();
+    drmpatches.init();
     iVega::X6000FB::singleton().init();
     iVega::AppleGFXHDA::singleton().init();
     iVega::X5000HWLibs::singleton().init();

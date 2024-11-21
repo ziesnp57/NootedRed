@@ -16,12 +16,8 @@
 DRMPatches *DRMPatches::callback = nullptr;
 uint8_t runTimes = 0;  // 运行次数计数器
 
-static iVega::DRMPatches instance {};
-
-iVega::DRMPatches &iVega::DRMPatches::singleton() { return instance; }
-
 // 初始化函数：设置回调指针
-void iVega::DRMPatches::init() { callback = this; }
+void DRMPatches::init() { callback = this; }
 
 // 处理补丁器：主要的补丁应用逻辑
 void DRMPatches::processPatcher(KernelPatcher &patcher) {
@@ -127,7 +123,7 @@ void DRMPatches::wrapCsValidatePage(vnode *vp, memory_object_t pager, memory_obj
     patch.apply(const_cast<void *>(data), PAGE_SIZE);
 
     // VCN1 特定补丁
-    if (NRed::callback->chipType >= ChipType::Renoir) { return; }
+ //   if (NRed::callback->chipType >= ChipType::Renoir) { return; }
 
     // 应用 VCN1 相关补丁
     const DYLDPatch vcn1Patches[] = {
