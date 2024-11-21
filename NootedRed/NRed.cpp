@@ -12,6 +12,7 @@
 #include <PrivateHeaders/Hotfixes/X6000FB.hpp>
 #include <PrivateHeaders/Model.hpp>
 #include <PrivateHeaders/NRed.hpp>
+#include <PrivateHeaders/DYLDPatches.hpp>
 #include <PrivateHeaders/PatcherPlus.hpp>
 #include <PrivateHeaders/iVega/AppleGFXHDA.hpp>
 #include <PrivateHeaders/iVega/HWLibs.hpp>
