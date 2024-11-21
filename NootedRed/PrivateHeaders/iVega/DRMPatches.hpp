@@ -61,9 +61,9 @@ class DYLDPatch {
 };
 
 // DYLD补丁管理类：负责管理和应用所有补丁
-class DYLDPatches {
+class DRMPatches {
     public:
-    static DYLDPatches *callback;    // 回调指针
+    static DRMPatches *callback;    // 回调指针
     void init();                     // 初始化函数
     void processPatcher(KernelPatcher &patcher);  // 处理补丁器
     

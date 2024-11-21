@@ -12,7 +12,7 @@
 #include <PrivateHeaders/Hotfixes/X6000FB.hpp>
 #include <PrivateHeaders/Model.hpp>
 #include <PrivateHeaders/NRed.hpp>
-#include <PrivateHeaders/DYLDPatches.hpp>
+#include <PrivateHeaders/iVega/DRMPatches.hpp>
 #include <PrivateHeaders/PatcherPlus.hpp>
 #include <PrivateHeaders/iVega/AppleGFXHDA.hpp>
 #include <PrivateHeaders/iVega/HWLibs.hpp>
@@ -27,6 +27,8 @@
 //------ Module Logic ------//
 
 static NRed instance {};
+
+static DRMPatches drmpatches;
 
 NRed &NRed::singleton() { return instance; }
 
@@ -91,6 +93,7 @@ void NRed::init() {
     Hotfixes::AGDP::singleton().init();
     Hotfixes::X6000FB::singleton().init();
     Backlight::singleton().init();
+    iVega::DRMPatches::singleton().init();
     iVega::X6000FB::singleton().init();
     iVega::AppleGFXHDA::singleton().init();
     iVega::X5000HWLibs::singleton().init();
@@ -248,6 +251,7 @@ void NRed::processPatcher(KernelPatcher &patcher) {
     }
 
     DeviceInfo::deleter(devInfo);
+    drmpatches.processPatcher(patcher);
 
     KernelPatcher::RouteRequest requests[] = {
         {"__ZN15OSMetaClassBase12safeMetaCastEPKS_PK11OSMetaClass", wrapSafeMetaCast, this->orgSafeMetaCast},

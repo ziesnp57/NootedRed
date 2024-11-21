@@ -1,21 +1,25 @@
 //! Copyright 2022-2024 ChefKiss Inc. Licensed under the Thou Shalt Not Profit License version 1.5.
 //! See LICENSE for details.
 
-#include <PrivateHeaders/DYLDPatches.hpp>
-#include <NRed.hpp>
+#include <PrivateHeaders/iVega/DRMPatches.hpp>
+#include <PrivateHeaders/NRed.hpp>
 #include <Headers/kern_api.hpp>
 #include <Headers/kern_devinfo.hpp>
 #include <IOKit/IODeviceTreeSupport.h>
 
 // 全局回调指针初始化为空
-DYLDPatches *DYLDPatches::callback = nullptr;
+DRMPatches *DRMPatches::callback = nullptr;
 uint8_t runTimes = 0;  // 运行次数计数器
 
+static iVega::DRMPatches instance {};
+
+iVega::DRMPatches &iVega::DRMPatches::singleton() { return instance; }
+
 // 初始化函数：设置回调指针
-void DYLDPatches::init() { callback = this; }
+void iVega::DRMPatches::init() { callback = this; }
 
 // 处理补丁器：主要的补丁应用逻辑
-void DYLDPatches::processPatcher(KernelPatcher &patcher) {
+void DRMPatches::processPatcher(KernelPatcher &patcher) {
     // 检查运行模式是否正常
     if (!(lilu.getRunMode() & LiluAPI::RunningNormal)) {
         return;
@@ -37,7 +41,7 @@ void DYLDPatches::processPatcher(KernelPatcher &patcher) {
 }
 
 // 页面验证包装函数：处理内存页面验证和补丁应用
-void DYLDPatches::wrapCsValidatePage(vnode *vp, memory_object_t pager, memory_object_offset_t page_offset,
+void DRMPatches::wrapCsValidatePage(vnode *vp, memory_object_t pager, memory_object_offset_t page_offset,
     const void *data, int *validated_p, int *tainted_p, int *nx_p) {
     // 调用原始页面验证函数
     FunctionCast(wrapCsValidatePage, callback->orgCsValidatePage)(vp, pager, page_offset, data, validated_p, tainted_p,
