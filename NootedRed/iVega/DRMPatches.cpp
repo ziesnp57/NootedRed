@@ -6,15 +6,15 @@
 //  Copyright © 2024 ChefKiss. All rights reserved.
 //
 
-#include <DRMPatches.hpp>
-#include <PrivateHeaders/NRed.hpp>
+#include "DRMPatches.hpp"
 #include <Headers/kern_api.hpp>
 #include <Headers/kern_devinfo.hpp>
 #include <IOKit/IODeviceTreeSupport.h>
+#include <PrivateHeaders/NRed.hpp>
 
 // 全局回调指针初始化为空
 DRMPatches *DRMPatches::callback = nullptr;
-uint8_t runTimes = 0;  // 运行次数计数器
+uint8_t runTimes = 0;    // 运行次数计数器
 
 // 初始化函数：设置回调指针
 void DRMPatches::init() { callback = this; }
@@ -38,7 +38,7 @@ void DRMPatches::processPatcher(KernelPatcher &patcher) {
     KernelPatcher::RouteRequest request {"_cs_validate_page", wrapCsValidatePage, this->orgCsValidatePage};
 
     PANIC_COND(!patcher.routeMultipleLong(KernelPatcher::KernelID, &request, 1), "DYLD",
-        "Failed to route kernel symbols");
+       "Failed to route kernel symbols");
 }
 
 // 页面验证包装函数：处理内存页面验证和补丁应用
@@ -89,10 +89,8 @@ void DRMPatches::wrapCsValidatePage(vnode *vp, memory_object_t pager, memory_obj
             {kVAAcceleratorInfoIdentifyVenturaOriginal, kVAAcceleratorInfoIdentifyVenturaOriginalMask,
                 kVAAcceleratorInfoIdentifyVenturaPatched, kVAAcceleratorInfoIdentifyVenturaPatchedMask,
                 "VAAcceleratorInfo::identify"},
-            {kVAFactoryCreateGraphicsEngineVenturaOriginal,
-                kVAFactoryCreateGraphicsEngineVenturaOriginalMask,
-                kVAFactoryCreateGraphicsEngineVenturaPatched,
-                kVAFactoryCreateGraphicsEngineVenturaPatchedMask,
+            {kVAFactoryCreateGraphicsEngineVenturaOriginal, kVAFactoryCreateGraphicsEngineVenturaOriginalMask,
+                kVAFactoryCreateGraphicsEngineVenturaPatched, kVAFactoryCreateGraphicsEngineVenturaPatchedMask,
                 "VAFactory::createGraphicsEngine"},
             {kVAFactoryCreateImageBltOriginal, kVAFactoryCreateImageBltMask, kVAFactoryCreateImageBltPatched,
                 kVAFactoryCreateImageBltPatchedMask, "VAFactory::createImageBlt"},
@@ -123,7 +121,7 @@ void DRMPatches::wrapCsValidatePage(vnode *vp, memory_object_t pager, memory_obj
     patch.apply(const_cast<void *>(data), PAGE_SIZE);
 
     // VCN1 特定补丁
- //   if (NRed::callback->chipType >= ChipType::Renoir) { return; }
+    //if (NRed::callback->chipType >= ChipType::Renoir) { return; }
 
     // 应用 VCN1 相关补丁
     const DYLDPatch vcn1Patches[] = {
