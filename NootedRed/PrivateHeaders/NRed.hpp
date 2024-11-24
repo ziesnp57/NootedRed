@@ -10,7 +10,6 @@
 
 class NRed {
     bool initialised {false};
-    NRed::callback = nullptr;
     NRedAttributes attributes {};
     IOPCIDevice *iGPU {nullptr};
     IOMemoryMap *rmmio {nullptr};
