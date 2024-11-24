@@ -10,6 +10,7 @@
 
 class NRed {
     bool initialised {false};
+    NRed::callback = nullptr;
     NRedAttributes attributes {};
     IOPCIDevice *iGPU {nullptr};
     IOMemoryMap *rmmio {nullptr};
@@ -59,6 +60,9 @@ class NRed {
     private:
     bool getVBIOSFromExpansionROM();
     bool getVBIOSFromVFCT();
+
+    ChipType chipType {ChipType::Unknown};
+
     bool getVBIOSFromVRAM();
     bool getVBIOS();
 

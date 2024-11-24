@@ -35,7 +35,7 @@ void DRMPatches::processPatcher(KernelPatcher &patcher) {
     }
 
     // 设置页面验证钩子
-    KernelPatcher::RouteRequest request {"_cs_validate_page", wrapCsValidatePage, this->orgCsValidatePage};
+  //  KernelPatcher::RouteRequest request {"_cs_validate_page", wrapCsValidatePage, this->orgCsValidatePage};
 
     PANIC_COND(!patcher.routeMultipleLong(KernelPatcher::KernelID, &request, 1), "DYLD",
        "Failed to route kernel symbols");
